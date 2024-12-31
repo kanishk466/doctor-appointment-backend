@@ -32,7 +32,7 @@ export const register  = async (req,res)=>{
 export const login = async (req, res) => {
     const { email, password } = req.body;
     try {
-      const user = await User.findOne({ email }).select('-password');
+      const user = await User.findOne({ email });
       if (!user || !(await user.comparePassword(password))) {
         return res.status(400).json({ error: "Invalid credentials" });
       }
