@@ -3,15 +3,10 @@ import bcrypt from "bcryptjs"
 
 
 const userSchema = new mongoose.Schema({
-    role: { type: String, enum: ['patient', 'doctor'], required: true },
-    name: { type: String, required: true },
-    email: { type: String, unique: true, required: true },
-    password: { type: String, required: true },
-    phone: { type: String, match: /^[0-9]{3}-[0-9]{3}-[0-9]{4}$/ }, // Optional for patients
-    address: { type: String }, // Optional for patients
-    specialization: String, // For doctors only
-    services: [String], // For doctors only
-    approved: { type: Boolean, default: false }, // For doctors
+   name: String,
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, enum: ["doctor", "patient"], required: true },
   }, { timestamps: true });
 
 
