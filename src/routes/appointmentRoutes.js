@@ -1,6 +1,6 @@
 import express from "express"
 
-import {bookAppointment , viewAppointments , updateAppointmentStatus} from "../controllers/appointmentController.js"
+import {bookAppointment , viewAppointments , updateAppointmentStatus , getDoctor} from "../controllers/appointmentController.js"
 
 import authenticate from "../middleware/authMiddleware.js"
 const router = express.Router();
@@ -9,8 +9,9 @@ const router = express.Router();
 router.post('/', authenticate, bookAppointment);
 router.get('/', authenticate, viewAppointments);
 
-router.patch('/:id' , authenticate , updateAppointmentStatus);
+router.patch('/:id/status' , authenticate , updateAppointmentStatus);
 
+router.get('/doctor' , authenticate , getDoctor);
 
 
 export default router;

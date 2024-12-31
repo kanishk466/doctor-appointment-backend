@@ -1,67 +1,76 @@
 import Appointment from "../models/appointment.model.js"
-
+import User from "../models/user.model.js"
 export const bookAppointment = async (req, res) => {
+  const { doctorId, date } = req.body;
+
   try {
-    const { personalInformation, appointmentDetails,medicalInformation,identification } = req.body;
+    const doctor = await User.findById(doctorId);
+    if (!doctor || doctor.role !== "doctor") return res.status(400).send("Invalid doctor ID.");
 
     const appointment = new Appointment({
-      personalInformation,
-      medicalInformation,
-      identification,
-    
-      appointmentDetails: {
-        ...appointmentDetails,
-        patientId: req.user.id,
-      },
+      doctorId,
+      patientId: req.user.userId,
+      date,
     });
 
     await appointment.save();
-    res.status(201).json({ message: 'Appointment booked successfully', appointment });
+    res.status(201).send("Appointment booked successfully!");
   } catch (error) {
-    res.status(500).json({ message: 'Error booking appointment', error });
+    res.status(500).send("Server error.");
   }
 };
 
  export const viewAppointments = async (req, res) => {
   try {
-    const filter = req.user.role === 'doctor'
-      ? { 'appointmentDetails.doctorId': req.user.id }
-      : { 'appointmentDetails.patientId': req.user.id };
+    const appointments = await Appointment.find({
+      $or: [{ doctorId: req.user.userId }, { patientId: req.user.userId }],
+    }).populate("doctorId patientId", "name email");
 
-    const appointments = await Appointment.find(filter);
     res.status(200).json(appointments);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching appointments', error });
+    res.status(500).send("Server error.");
   }
 };
 
 
 
 export const updateAppointmentStatus =  async (req, res) => {
+  const { status } = req.body;
+  const appointmentId = req.params.id;
+
   try {
-    const { id } = req.params; // Get the appointment ID from the URL
-    const { status } = req.body; // Get the status from the request body
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) return res.status(404).send("Appointment not found.");
 
-    // Validate the doctor making the request
-    if (req.user.role !== 'doctor') {
-      return res.status(403).json({ message: 'Access denied. Only doctors can update appointment status.' });
+    if (appointment.doctorId.toString() !== req.user.userId) {
+      return res.status(403).send("You are not authorized to update this appointment.");
     }
 
-    // Find the appointment by ID
-    const appointment = await Appointment.findById(id);
-
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found.' });
-    }
-
-    // Update the status
-    appointment.appointmentDetails.status = status;
-    appointment.updatedAt = Date.now();
-
+    appointment.status = status;
     await appointment.save();
 
-    res.status(200).json({ message: 'Appointment status updated successfully.', appointment });
+    res.status(200).send("Appointment status updated successfully!");
   } catch (error) {
-    res.status(500).json({ message: 'Error updating appointment status.', error: error.message });
+    res.status(500).send("Server error.");
   }
 };
+
+
+
+export const getDoctor = async(req,res)=>{
+  try {
+    // Fetch all users with the role of "doctor"
+    const doctors = await User.find({ role: "doctor" }).select("name specialization email _id");
+
+    // If no doctors found, return a 404
+    if (doctors.length === 0) {
+      return res.status(404).json({ message: "No doctors found" });
+    }
+
+    // Return the list of doctors
+    return res.json(doctors);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
