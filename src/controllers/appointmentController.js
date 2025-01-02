@@ -1,29 +1,33 @@
 import Appointment from "../models/appointment.model.js"
 import User from "../models/user.model.js"
+
+
+
 export const bookAppointment = async (req, res) => {
   const { doctorId, date } = req.body;
 
+console.log(doctorId , date);
   try {
     const doctor = await User.findById(doctorId);
     if (!doctor || doctor.role !== "doctor") return res.status(400).send("Invalid doctor ID.");
 
     const appointment = new Appointment({
       doctorId,
-      patientId: req.user.userId,
+      patientId: req.user.id,
       date,
     });
 
     await appointment.save();
     res.status(201).send("Appointment booked successfully!");
   } catch (error) {
-    res.status(500).send("Server error.");
+    res.status(500).json({ message: 'Error booking appointment', error });
   }
 };
 
  export const viewAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find({
-      $or: [{ doctorId: req.user.userId }, { patientId: req.user.userId }],
+      $or: [{ doctorId: req.user.id }, { patientId: req.user.id }],
     }).populate("doctorId patientId", "name email");
 
     res.status(200).json(appointments);
@@ -42,14 +46,14 @@ export const updateAppointmentStatus =  async (req, res) => {
     const appointment = await Appointment.findById(appointmentId);
     if (!appointment) return res.status(404).send("Appointment not found.");
 
-    if (appointment.doctorId.toString() !== req.user.userId) {
+    if (appointment.doctorId.toString() !== req.user.id) {
       return res.status(403).send("You are not authorized to update this appointment.");
     }
 
     appointment.status = status;
     await appointment.save();
 
-    res.status(200).send("Appointment status updated successfully!");
+    res.status(200).json({message :"Appointment status updated successfully!" , status});
   } catch (error) {
     res.status(500).send("Server error.");
   }
