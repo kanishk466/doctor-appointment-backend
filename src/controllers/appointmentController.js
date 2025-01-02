@@ -78,3 +78,17 @@ export const getDoctor = async(req,res)=>{
     return res.status(500).json({ message: "Server error" });
   }
 }
+
+
+export const getPateintBookedAppointment = async(req,res)=>{
+  try {
+    const patientId = req.user.id; // Extract patient ID from JWT token
+    const appointments = await Appointment.find({ patientId })
+      .populate("doctorId", "name specialization") // Populate doctor details
+      .exec();
+    res.json(appointments);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching appointments" });
+  }
+}
