@@ -25,6 +25,9 @@ export const bookAppointment = async (req, res) => {
   }
 };
 
+
+
+
  export const viewAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find()

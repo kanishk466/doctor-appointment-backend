@@ -5,10 +5,10 @@ const router = express.Router();
 
 router.post('/register-patient', authenticate , async (req, res) => {
   try {
-    const { patientId, personalInformation, medicalInformation, identification } = req.body;
+    const { personalInformation, medicalInformation, identification } = req.body;
 
     const newPatient = new Patient({
-      patientId,
+      patientId:req.user.id,
       personalInformation,
       medicalInformation,
       identification,
