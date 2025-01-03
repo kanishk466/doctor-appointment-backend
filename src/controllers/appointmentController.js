@@ -4,17 +4,18 @@ import User from "../models/user.model.js"
 
 
 export const bookAppointment = async (req, res) => {
-  const { doctorId, date } = req.body;
+  const { doctorId,patientId, appointmentDate, notes, reasonNotes } = req.body;
 
-console.log(doctorId , date);
   try {
     const doctor = await User.findById(doctorId);
     if (!doctor || doctor.role !== "doctor") return res.status(400).send("Invalid doctor ID.");
 
     const appointment = new Appointment({
       doctorId,
-      patientId: req.user.id,
-      date,
+      patientId,
+      appointmentDate,
+      notes,
+      reasonNotes,
     });
 
     await appointment.save();
@@ -26,11 +27,12 @@ console.log(doctorId , date);
 
  export const viewAppointments = async (req, res) => {
   try {
-    const appointments = await Appointment.find({
-      $or: [{ doctorId: req.user.id }, { patientId: req.user.id }],
-    }).populate("doctorId patientId", "name email");
+    const appointments = await Appointment.find()
+    .populate("doctorId", "name email")
+    .populate("patientId", "personalInformation.name personalInformation.email")
+    .sort({ appointmentDate: 1 }); // Sort by upcoming dates
 
-    res.status(200).json(appointments);
+    res.status(200).json({ message: "Appointments fetched successfully", data: appointments });
   } catch (error) {
     res.status(500).send("Server error.");
   }
@@ -39,21 +41,24 @@ console.log(doctorId , date);
 
 
 export const updateAppointmentStatus =  async (req, res) => {
-  const { status } = req.body;
-  const appointmentId = req.params.id;
+  
 
+  
   try {
-    const appointment = await Appointment.findById(appointmentId);
-    if (!appointment) return res.status(404).send("Appointment not found.");
+    const { id } = req.params;
+    const { status, notes } = req.body;
 
-    if (appointment.doctorId.toString() !== req.user.id) {
-      return res.status(403).send("You are not authorized to update this appointment.");
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      id,
+      { status, notes },
+      { new: true }
+    );
+
+    if (!updatedAppointment) {
+      return res.status(404).json({ message: "Appointment not found" });
     }
 
-    appointment.status = status;
-    await appointment.save();
-
-    res.status(200).json({message :"Appointment status updated successfully!" , status});
+    res.status(200).json({ message: "Appointment updated successfully", data: updatedAppointment });
   } catch (error) {
     res.status(500).send("Server error.");
   }
