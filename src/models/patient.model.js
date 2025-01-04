@@ -19,7 +19,7 @@ const patientSchema = new mongoose.Schema({
       emergencyContact: {
         type: String,
         required: true,
-        match: /^[0-9]{3}-[0-9]{3}-[0-9]{4}$/,
+        match: ^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$,
       },
       occupation: { type: String, required: true },
       address: {
