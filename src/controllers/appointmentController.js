@@ -93,7 +93,7 @@ export const getPateintBookedAppointment = async(req,res)=>{
 
   try {
       const patientId = req.params.id;
-      const patient = await Appointment.findById({ patientId }).populate('patientId doctorId', 'name email');
+      const patient = await Appointment.find({ patientId }).populate('patientId doctorId', 'name email');
       
       if (!patient) {
         return res.status(404).json({ message: 'Patient not found' });
