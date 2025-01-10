@@ -9,11 +9,11 @@ The backend provides APIs for managing users, doctors, and appointments. It hand
 
 ## Features ✨
 
-**User Authentication: JWT-based authentication for patients and doctors.**
-**Doctor Management: APIs to manage doctor profiles and schedules.**
-**Appointment Management: APIs to handle booking, rescheduling, and cancellations.**
-**Data Persistence: MongoDB for storing user and appointment details.**
-**Real-time Notifications: Firebase/Socket.io for live updates on appointment statuses.**
+-**User Authentication: JWT-based authentication for patients and doctors.**
+-**Doctor Management: APIs to manage doctor profiles and schedules.**
+-**Appointment Management: APIs to handle booking, rescheduling, and cancellations.**
+-**Data Persistence: MongoDB for storing user and appointment details.**
+-**Real-time Notifications: Firebase/Socket.io for live updates on appointment statuses.**
 
 ---
 ---
