@@ -19,25 +19,25 @@ The backend provides APIs for managing users, doctors, and appointments. It hand
 ---
 
 API Endpoints
-Authentication
-POST /api/auth/register
-Register a new user (Patient/Doctor).
-POST /api/auth/login
-Authenticate a user and return a JWT.
-Doctors
-GET /api/doctors
-Fetch all registered doctors.
-POST /api/doctors
-Add a new doctor (Admin only).
-PUT /api/doctors/:id
-Update doctor details.
-Appointments
-POST /api/appointments
-Book a new appointment.
-GET /api/appointments
-Fetch all appointments for a user.
-DELETE /api/appointments/:id
-Cancel an appointment.
+- **Authentication
+- **POST /api/auth/register
+- **Register a new user (Patient/Doctor).
+- **POST /api/auth/login
+- **Authenticate a user and return a JWT.
+- **Doctors
+- **GET /api/doctors
+- **Fetch all registered doctors.
+- **POST /api/doctors
+- **Add a new doctor (Admin only).
+- **PUT /api/doctors/:id
+- **Update doctor details.
+- **Appointments
+- **POST /api/appointments
+- **Book a new appointment.
+- **GET /api/appointments
+- **Fetch all appointments for a user.
+- **DELETE /api/appointments/:id
+- **Cancel an appointment.
 ---
 ## Tech Stack 🛠️
 
