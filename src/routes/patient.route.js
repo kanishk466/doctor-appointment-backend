@@ -7,6 +7,15 @@ router.post('/register-patient', authenticate , async (req, res) => {
   try {
     const { personalInformation, medicalInformation, identification } = req.body;
 
+
+       // Check if a patient record already exists for the authenticated user
+   const existingPatient = await Patient.findOne({ patientId: req.user.id });
+
+   if (existingPatient) {
+     return res.status(400).json({ 
+       message: 'Patient record already exists. Please update your information instead.' 
+     });
+   }
     const newPatient = new Patient({
       patientId:req.user.id,
       personalInformation,
@@ -24,10 +33,9 @@ router.post('/register-patient', authenticate , async (req, res) => {
 
 
 
-router.get('/patient/:id', authenticate , async (req, res) => {
+router.get('/patient/profile', authenticate , async (req, res) => {
     try {
-      const patientId = req.params.id;
-      const patient = await Patient.findOne({ patientId }).populate('patientId', 'name email');
+      const patient = await Patient.findOne({ patientId: req.user.id }).populate('patientId', 'name email');
       
       if (!patient) {
         return res.status(404).json({ message: 'Patient not found' });
@@ -39,6 +47,36 @@ router.get('/patient/:id', authenticate , async (req, res) => {
       res.status(500).json({ message: 'Internal Server Error', error });
     }
   });
+  
+
+  router.put('/update-patient', authenticate, async (req, res) => {
+    try {
+      const { personalInformation, medicalInformation, identification } = req.body;
+  
+      // Find the existing patient record
+      const patient = await Patient.findOne({ patientId: req.user.id });
+  
+      if (!patient) {
+        return res.status(404).json({ message: 'Patient record not found. Please register first.' });
+      }
+  
+      // Update the fields
+      patient.personalInformation = personalInformation || patient.personalInformation;
+      patient.medicalInformation = medicalInformation || patient.medicalInformation;
+      patient.identification = identification || patient.identification;
+  
+      const updatedPatient = await patient.save();
+      res.status(200).json({ message: 'Patient information updated successfully', data: updatedPatient });
+    } catch (error) {
+      console.error('Error updating patient information:', error);
+      res.status(500).json({ message: 'Internal Server Error', error });
+    }
+  });
+  
+
+
+  
+
   
 
 export default router;
