@@ -89,14 +89,21 @@ export const getDoctor = async(req,res)=>{
 
 
 export const getPateintBookedAppointment = async(req,res)=>{
+
+
   try {
-    const patientId = req.user.id; // Extract patient ID from JWT token
-    const appointments = await Appointment.find({ patientId })
-      .populate("doctorId", "name specialization") // Populate doctor details
-      .exec();
-    res.json(appointments);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error fetching appointments" });
-  }
+      const patientId = req.params.id;
+      const patient = await Appointment.find({ patientId }).populate('patientId doctorId', 'name email');
+      
+      if (!patient) {
+        return res.status(404).json({ message: 'Patient not found' });
+      }
+  
+      res.status(200).json({ message: 'Patient fetched successfully', data: patient });
+    } catch (error) {
+      console.error('Error fetching patient:', error);
+      res.status(500).json({ message: 'Internal Server Error', error });
+    }
+  
+
 }

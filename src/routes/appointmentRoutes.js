@@ -13,7 +13,7 @@ router.patch('/:id/status' , authenticate , updateAppointmentStatus);
 
 router.get('/doctor' , authenticate , getDoctor);
 
-router.get('/patient' , authenticate , getPateintBookedAppointment);
+router.get('/patient/:id' , authenticate , getPateintBookedAppointment);
 
 
 export default router;
