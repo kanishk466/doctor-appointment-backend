@@ -1,7 +1,16 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import ejs from "ejs"
+import express from "express"
+
+
 
 dotenv.config();
+
+express().set("view engine" , 'ejs');
+
+
+
 
 // Configure the transporter
 const transporter = nodemailer.createTransport({
@@ -14,9 +23,6 @@ const transporter = nodemailer.createTransport({
 
 
 const sendTaskAssignmentEmail = async (to, taskDetails) => {
-
-
-
 
   const mailOptions = {
     from: process.env.EMAIL_USER, // Sender address
