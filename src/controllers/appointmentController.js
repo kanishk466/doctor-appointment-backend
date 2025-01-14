@@ -1,20 +1,28 @@
 import Appointment from "../models/appointment.model.js";
 import User from "../models/user.model.js";
-import twilio from "twilio";
-import sendTaskAssignmentEmail from "../services/notificationService.js";
+import Patient from "../models/patient.model.js"
+import notificationQueue from "../jobs/notificationQueue.js"; // Bull queue setup
+
+
+// import { sendEmail } from "../services/notificationService";
+// import { sendSMS } from "../services/twilioservice";
+
 
 import { configDotenv } from "dotenv";
 configDotenv();
 
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 
 //  Book Appointment
 export const bookAppointment = async (req, res) => {
+
+
+
   const { doctorId, patientId, appointmentDate, notes, reasonNotes } = req.body;
 
   try {
     const doctor = await User.findById(doctorId);
+
 
     if (!doctor || doctor.role !== "doctor")
       return res.status(400).send("Invalid doctor ID.");
@@ -27,56 +35,67 @@ export const bookAppointment = async (req, res) => {
       reasonNotes,
     });
 
+
     await appointment.save();
-    let email = null;
-    let taskDetails = null;
 
-    const patient = await Appointment.find({ patientId })
-      .populate("doctorId", "name email ")
-      .populate(
-        "patientId",
-        "personalInformation.name personalInformation.email personalInformation.phone"
-      );
-    if (!patient) {
-      return res.status(404).json({ message: "Patient not found" });
-    } else {
-      email = patient[0].patientId.personalInformation.email;
 
-      taskDetails = {
-        date: appointmentDate,
-        doctorName: patient[0].doctorId.name,
-        patientName: patient[0].patientId.personalInformation.name,
-        patientPhone: patient[0].patientId.personalInformation.phone,
-      };
-    }
 
-    await sendTaskAssignmentEmail(email, taskDetails);
-
-    const isValidPhoneNumber = /^\d{10}$/.test(taskDetails.patientPhone);
-
-    if (!isValidPhoneNumber) {
-      console.error("Invalid phone number:", taskDetails.patientPhone);
-      return res.status(400).json({ message: "Invalid phone number format." });
-    }
+ // Fetch patient details
+ const patient = await Patient.findById(patientId);
+ if (!patient) {
+   return res.status(404).json({ message: "Patient not found" });
+ }
 
 
 
 
-    twilioClient.messages
-    .create({
-         body: `Dear ${taskDetails.patientName}, your appointment is confirmed for ${taskDetails.date}.`,
-        messagingServiceSid: 'MGbf6cfb992136bcf93b08ca31d3fd796e',
-        to: `+91${taskDetails.patientPhone}`,
-    })
-    .then(message => console.log(message.sid));
+ // Prepare task details
+   const doctorName = doctor.name;
+    const patientName = patient.personalInformation.name;
+    const patientEmail = patient.personalInformation.email;
+    const patientPhone = patient.personalInformation.phone;
+
+ if (!patientEmail || !patientPhone) {
+  return res.status(400).json({ message: "Patient contact information is incomplete." });
+}
+
+// Add email and SMS notifications to the queue
+notificationQueue.add("email", {
+  email: patientEmail,
+  subject: "Appointment Confirmation",
+  message: `Dear ${patientName}, your appointment with Dr. ${doctorName} on ${appointmentDate} has been confirmed.`,
+});
+
+notificationQueue.add("sms", {
+  phone: `+91${patientPhone}`,
+  message: `Dear ${patientName}, your appointment with Dr. ${doctorName} on ${appointmentDate} has been confirmed.`,
+});
+
+    // let email = null;
+    // let taskDetails = null;
+
+    // const patient = await Appointment.find({ patientId })
+    //   .populate("doctorId", "name email ")
+    //   .populate(
+    //     "patientId",
+    //     "personalInformation.name personalInformation.email personalInformation.phone"
+    //   );
+    // if (!patient) {
+    //   return res.status(404).json({ message: "Patient not found" });
+    // } else {
+    //   email = patient[0].patientId.personalInformation.email;
+
+    //   taskDetails = {
+    //     date: appointmentDate,
+    //     doctorName: patient[0].doctorId.name,
+    //     patientName: patient[0].patientId.personalInformation.name,
+    //     patientPhone: patient[0].patientId.personalInformation.phone,
+    //   };
+    // }
 
 
 
-
-
-
-
-    res.status(201).json({ message: "Appointments Booked successfully", patient });
+    res.status(201).json({ message: "Appointments Booked successfully", appointment });
   } catch (error) {
     res.status(500).json({ message: "Error booking appointment", error });
   }
