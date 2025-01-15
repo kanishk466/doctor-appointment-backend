@@ -22,6 +22,7 @@ const notificationQueue = new Queue("notifications", {
 // Process email notifications
 notificationQueue.process("email", async (job, done) => {
   const { email, subject, message } = job.data;
+
   try {
     await sendTaskAssignmentEmail(email, { subject, message });
     console.log("Email sent successfully:", email);

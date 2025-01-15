@@ -1,6 +1,6 @@
 import express from "express"
 
-import {bookAppointment , viewAppointments , updateAppointmentStatus , getDoctor , getPateintBookedAppointment} from "../controllers/appointmentController.js"
+import {bookAppointment ,setDoctorAvailability, viewAppointments , updateAppointmentStatus , getDoctor , getPateintBookedAppointment , getDoctorSlots} from "../controllers/appointmentController.js"
 
 import authenticate from "../middleware/authMiddleware.js"
 const router = express.Router();
@@ -15,5 +15,13 @@ router.get('/doctor' , authenticate , getDoctor);
 
 router.get('/patient/:id' , authenticate , getPateintBookedAppointment);
 
+
+
+
+router.get("/doctor/:doctorId/slots",authenticate, getDoctorSlots);
+
+
+
+router.post('/set-availability', setDoctorAvailability);
 
 export default router;
