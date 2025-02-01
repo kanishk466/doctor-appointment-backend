@@ -3,136 +3,72 @@ import User from "../models/user.model.js";
 import Patient from "../models/patient.model.js";
 import notificationQueue from "../jobs/notificationQueue.js"; // Bull queue setup
 
-
-import DoctorAvailability from "../models/doctorAvailability.js";
-
-
-
-
 import { configDotenv } from "dotenv";
 configDotenv();
 
 // ============================Book Appointment ==============================
 
-
-
-
-
-
-
-
-
-
- export const bookAppointment = async (req, res) => {
-  const { doctorId, patientId, appointmentDate } = req.body;
-
+export const bookAppointment = async (req, res) => {
   try {
-    const parsedDate = new Date(appointmentDate);
+    const { doctorId, patientId, date, startTime, endTime } = req.body;
 
-    if (isNaN(parsedDate.getTime())) {
-      return res.status(400).json({ message: "Invalid appointment date format." });
-    }
-
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const appointment = new Appointment({ ...req.body });
 
         const doctor = await User.findById(doctorId);
     if (!doctor || doctor.role !== "doctor")
       return res.status(400).send("Invalid doctor ID.");
 
 
-
-    // Check if the slot is already booked
-    const existingAppointment = await Appointment.findOne({
-      doctorId,
-      appointmentDate: parsedDate,
-    });
-
-    if (existingAppointment) {
-      return res.status(400).json({ message: "Slot is already booked." });
-    }
-
-    // Create a new appointment
-    const newAppointment = new Appointment({
-      doctorId,
-      patientId,
-      appointmentDate: parsedDate,
-    });
-
-    await newAppointment.save();
-
-
-    //     // Fetch patient details
     const patient = await Patient.findById(patientId);
     if (!patient) {
       return res.status(404).json({ message: "Patient not found" });
     }
 
-    // Prepare task details
 
-       const doctorName = doctor.name
+        await appointment.save();
+
+
+               const doctorName = doctor.name
        const patientName = patient.personalInformation.name
        const patientEmail = patient.personalInformation.email
        const patientPhone = patient.personalInformation.phone
 
-
-
-
-    if (!patientEmail || !patientPhone) {
-      return res
-        .status(400)
-        .json({ message: "Patient contact information is incomplete." });
-    }
-
-    // Add email and SMS notifications to the queue
-    notificationQueue.add("email", {
+           notificationQueue.add("email", {
       email: patientEmail,
       subject: "Appointment Confirmation",
-      message: `Dear ${patientName}, your appointment with Dr. ${doctorName} on ${appointmentDate} has been confirmed.`,
+      message: `Dear ${patientName}, your appointment with Dr. ${doctorName} on ${date} has been confirmed.`,
     });
 
     notificationQueue.add("sms", {
       phone: `+91${patientPhone}`,
-      message: `Dear ${patientName}, your appointment with Dr. ${doctorName} on ${appointmentDate} has been confirmed.`,
+      message: `Dear ${patientName}, your appointment with Dr. ${doctorName} on ${date} has been confirmed.`,
     });
 
 
-
-
-
-
-
-    res.status(201).json({ message: "Appointment booked successfully.", appointment: newAppointment });
-  } catch (error) {
-    console.error("Error booking appointment:", error);
-    res.status(500).json({ message: "Internal server error." });
-  }
-};
-
-
-//========================================setDoctorAvailability=================
-
-
-
-
-export const setDoctorAvailability = async (req, res) => {
-  const { doctorId, availableSlots } = req.body;
-
-  try {
-    const existingAvailability = await DoctorAvailability.findOne({ doctorId });
-
-    if (existingAvailability) {
-      existingAvailability.availableSlots = availableSlots;
-      await existingAvailability.save();
-    } else {
-      const newAvailability = new DoctorAvailability({ doctorId, availableSlots });
-      await newAvailability.save();
+        
+        return res.status(201).json(appointment);
+      } catch (error) {
+        if (error.code === 11000) {
+          // Duplicate slot booking
+          if (attempt === 2)
+            return res
+              .status(400)
+              .json({
+                message:
+                  "Slot already booked. Please select another time slot.",
+              });
+        } else {
+          throw error;
+        }
+      }
     }
-
-    res.status(200).json({ message: "Availability updated successfully" });
   } catch (error) {
-    console.error("Error setting availability:", error);
-    res.status(500).json({ message: "Internal Server Error", error });
+    res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 
 // ==================================view appointment all===========================
@@ -142,8 +78,7 @@ export const viewAppointments = async (req, res) => {
     const appointments = await Appointment.find()
       .populate("doctorId", "name email")
       .populate(
-        "patientId",
-        "personalInformation.name personalInformation.email"
+        "patientId"
       )
       .sort({ appointmentDate: 1 }); // Sort by upcoming dates
 
@@ -156,114 +91,6 @@ export const viewAppointments = async (req, res) => {
   }
 };
 //=================================getDoctorSlots==================
-
-
-
-
-
-
-export const getDoctorSlots = async (req, res) => {
-  // const { doctorId, date } = req.query;
-
-    const { doctorId } = req.params;
-  const { date } = req.query;
-
-  try {
-    const parsedDate = new Date(date);
-
-    if (isNaN(parsedDate.getTime())) {
-      return res.status(400).json({ message: "Invalid date format." });
-    }
-
-    const availability = await DoctorAvailability.findOne({
-      doctorId,
-      "availableSlots.date": parsedDate,
-    });
-
-    if (!availability) {
-      return res.status(404).json({ message: "No availability found for this date." });
-    }
-
-    // Fetch all booked slots for this doctor and date
-    const bookedAppointments = await Appointment.find({
-      doctorId,
-      appointmentDate: { $gte: parsedDate, $lt: new Date(parsedDate.getTime() + 24 * 60 * 60 * 1000) },
-    }).select("appointmentDate");
-
-    // Mark booked slots
-    const bookedSlots = bookedAppointments.map((appt) => appt.appointmentDate.getTime());
-
-    // Filter available slots
-    const availableSlots = availability.availableSlots.filter(
-      (slot) =>
-        !bookedSlots.includes(new Date(slot.start).getTime()) &&
-        !bookedSlots.includes(new Date(slot.end).getTime())
-    );
-
-    res.status(200).json({ availableSlots , bookedSlots });
-  } catch (error) {
-    console.error("Error fetching available slots:", error);
-    res.status(500).json({ message: "Internal server error." });
-  }
-};
-
-
-
-
-
-
-// export const getDoctorSlots = async (req, res) => {
-//   const { doctorId } = req.params;
-//   const { date } = req.query; // Format: YYYY-MM-DD
-
-//   try {
-//     // Get doctor's availability for the specified date
-//     const availability = await DoctorAvailability.findOne({ doctorId });
-
-//     if (!availability) {
-//       return res.status(404).json({ message: 'No availability found for this doctor' });
-//     }
-
-//     const daySlots = availability.availableSlots.find(slot => slot.date === date);
-
-    
-
-//     if (!daySlots) {
-//       return res.status(404).json({ message: 'No available slots for this date' });
-//     }
-
-//     // Get booked slots for the doctor on the specified date
-//     const bookedAppointments = await Appointment.find({
-//       doctorId,
-//       appointmentDate: new Date(date),
-//       status: { $in: ['confirmed', 'pending'] }
-//     });
-
-//     const bookedSlots = bookedAppointments.map(appointment => ({
-//       startTime: appointment.startTime,
-//       endTime: appointment.endTime
-//     }));
-
-//     res.status(200).json({
-//       availableSlots: daySlots.timeSlots,
-//       bookedSlots
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: 'Failed to fetch available slots', error });
-//   }
-// };
-
-
-
-
-
-
-
-
-
-
-
 
 //==========================update Appointment Status====================================
 
