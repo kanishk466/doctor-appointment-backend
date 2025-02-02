@@ -10,6 +10,8 @@ import authRoute from "./src/routes/auth.route.js"
 import errorHandler from "./src/middleware/errorHandler.js"
 import appointmentRoutes from "./src/routes/appointmentRoutes.js"
 import patientRoute from "./src/routes/patient.route.js"
+import setDoctorAvailability from "./src/routes/availabilityRoutes.js"
+
 
 configDotenv();
 const app = express();
@@ -27,6 +29,7 @@ ConnectDB();
 app.use('/api/auth', authRoute);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api' , patientRoute)
+app.use('/api/availability' , setDoctorAvailability)
 
 app.use(errorHandler);
 // Start the server

@@ -9,7 +9,10 @@ const AppointmentSchema = new mongoose.Schema({
     endTime: { type: String, required: true },
     status: { type: String, enum: ['Pending', 'Confirmed', 'Completed', 'Cancelled'], default: 'Pending' }
 });
-AppointmentSchema.index({ doctorId: 1, date: 1, startTime: 1 }, { unique: true });
+
+
+
+AppointmentSchema.index({ doctorId: 1}, { unique: true });
 export default mongoose.model('Appointment', AppointmentSchema);
 
 
