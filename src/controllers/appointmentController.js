@@ -114,6 +114,26 @@ export const bookAppointment = async (req,res)=>{
 
     await appointment.save();
 
+
+  // Step 2: Update the corresponding slot to set isBooked = true
+    const updatedAvailability = await Availability.findOneAndUpdate(
+      {
+        doctorId,
+        date: appointmentDate,
+        "slots.startTime": startTime,
+        "slots.endTime": endTime,
+      },
+      {
+        $set: { "slots.$.isBooked": true },
+      },
+      { new: true }
+    );
+
+    if (!updatedAvailability) {
+      return res.status(400).json({ message: "Failed to update slot booking" });
+    }
+
+          
                const doctorName = doctor.name
        const patientName = patient.personalInformation.name
        const patientEmail = patient.personalInformation.email
