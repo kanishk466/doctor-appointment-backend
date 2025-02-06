@@ -68,7 +68,7 @@ router.post('/set', authenticateToken, async (req, res) => {
 router.get('/:doctorId/:date', async (req, res) => {
     try {
         const { doctorId, date } = req.params;
-        const availability = await Availability.findOne({ doctorId, date });
+        const availability = await Availability.find({ doctorId, date });
 
         if (!availability) {
             return res.json({ message: 'No slots available' });
