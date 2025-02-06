@@ -66,18 +66,16 @@ router.post('/set', authenticateToken, async (req, res) => {
 
 // Get available slots for a doctor
 router.get('/:doctorId/:date', async (req, res) => {
-    try {
+   try {
         const { doctorId, date } = req.params;
-
         const availability = await Availability.findOne({ doctorId, date });
 
         if (!availability) {
-            return res.status(404).json({ message: 'No slots available' });
+            return res.json({ message: 'No slots available' });
         }
 
-        // Return all slots (both booked and unbooked)
-        res.json({ slots: availability.slots });
-        
+        const availableSlots = availability.slots.filter(slot => !slot.isBooked);
+        res.json(availableSlots);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }
